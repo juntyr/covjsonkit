@@ -143,15 +143,15 @@ class BoundingBox(Encoder):
 
         """
         coords  = {}
-        coords['composite'] = []
         mars_metadata = {}
         range_dict = {}
+        dates = []
         lat = 0
         param = 0
         number = 0
         step = 0
 
-        self.func(result, lat, coords, mars_metadata, param, range_dict, number, step)
+        self.func(result, lat, coords, mars_metadata, param, range_dict, number, step, dates)
         #print(range_dict)
 
         self.add_reference(
@@ -164,9 +164,11 @@ class BoundingBox(Encoder):
             }
         )
         
-        for param in range_dict[1].keys():
-            self.add_parameter(param)
-
+        for date in range_dict.keys():
+            for param in range_dict[date].keys():
+                self.add_parameter(param)
+            break
+        """
         for num in range_dict.keys():
             val_dict = {}
             for step in range_dict[1][self.parameters[0]].keys():
@@ -179,6 +181,9 @@ class BoundingBox(Encoder):
                 mm["number"] = num
                 mm['step'] = step
                 self.add_coverage(mm, coords, val_dict[step])
+        """
+        for date in range_dict.keys():
+            self.add_coverage(mars_metadata, coords[date], range_dict[date])
 
         #self.add_coverage(mars_metadata, coords, range_dict)
         #return self.covjson
@@ -187,7 +192,7 @@ class BoundingBox(Encoder):
         return self.covjson
 
 
-    def func(self, tree, lat, coords, mars_metadata, param, range_dict, number, step):
+    def func(self, tree, lat, coords, mars_metadata, param, range_dict, number, step, dates):
         if len(tree.children) != 0:
         # recurse while we are not a leaf
             for c in tree.children:
@@ -197,11 +202,14 @@ class BoundingBox(Encoder):
                     lat = c.values[0]
                 if c.axis.name == "param":
                     param = c.values
-                    for num in range_dict:
-                        for para in param:
-                            range_dict[num][para] = {}
+                    for para in param:
+                        range_dict[str(dates)][para] = []
                 if c.axis.name == "date":
-                    coords['t'] = [str(c.values[0]) + "Z"]
+                    dates = c.values[0]
+                    coords[str(dates)] = {}
+                    coords[str(dates)]['composite'] = []
+                    coords[str(dates)]['t'] = [str(c.values[0]) + "Z"]
+                    range_dict[str(dates)] = {}
                 if c.axis.name == "number":
                     number = c.values
                     for num in number:
@@ -213,23 +221,19 @@ class BoundingBox(Encoder):
                             for s in step:
                                 range_dict[num][para][s] = []
 
-                self.func(c, lat, coords, mars_metadata, param, range_dict, number, step)
+                self.func(c, lat, coords, mars_metadata, param, range_dict, number, step, dates)
         else:
-            vals = len(tree.values)
+            #vals = len(tree.values)
             tree.values = [float(val) for val in tree.values]
             tree.result = [float(val) for val in tree.result]
-            num_intervals = int(len(tree.result)/len(number))
-            para_intervals = int(num_intervals/len(param))
+            #num_intervals = int(len(tree.result)/len(number))
+            #para_intervals = int(num_intervals/len(param))
 
             for val in tree.values:
-                coords['composite'].append([lat, val])
+                coords[str(dates)]['composite'].append([lat, val])
 
-            for num in range_dict:
-                for i, para in enumerate(range_dict[num]):
-                    for s in range_dict[num][para]:
-                        start = ((int(num)-1)*num_intervals)+(vals*int(s))+((i*para_intervals))
-                        end = ((int(num)-1)*num_intervals)+((vals)*int(s+1))+((i)*(para_intervals))
-                        range_dict[num][para][s].extend(tree.result[start:end])
+            for i, para in enumerate(param):
+                range_dict[str(dates)][para].append(tree.result[i])
 
     """
     def func(self, tree, lat, coords, mars_metadata, param, range_dict, number):
