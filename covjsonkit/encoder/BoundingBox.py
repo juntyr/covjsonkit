@@ -34,7 +34,7 @@ class BoundingBox(Encoder):
         coverage["domain"]["axes"]["composite"] = {}
         coverage["domain"]["axes"]["composite"]["dataType"] = "tuple"
         coverage["domain"]["axes"]["composite"]["coordinates"] = self.covjson['referencing'][0]['coordinates'] #self.pydantic_coverage.referencing[0].coordinates
-        coverage["domain"]["axes"]["composite"]["values"] = coords["composite"]
+        coverage["domain"]["axes"]["composite"]["values"] = coords["composite"][0:self.coord_length]
 
     def add_range(self, coverage, values):
         for parameter in values.keys():
@@ -150,9 +150,10 @@ class BoundingBox(Encoder):
         param = 0
         number = 0
         step = 0
+        self.coord_length = 0
 
         self.func(result, lat, coords, mars_metadata, param, range_dict, number, step, dates)
-        #print(range_dict)
+
 
         self.add_reference(
             {
@@ -166,6 +167,7 @@ class BoundingBox(Encoder):
         
         for date in range_dict.keys():
             for param in range_dict[date].keys():
+                self.coord_length = len(range_dict[date][param])
                 self.add_parameter(param)
             break
         """
@@ -202,14 +204,17 @@ class BoundingBox(Encoder):
                     lat = c.values[0]
                 if c.axis.name == "param":
                     param = c.values
-                    for para in param:
-                        range_dict[str(dates)][para] = []
+                    for date in dates:
+                        for para in param:
+                            range_dict[str(date)][para] = []
                 if c.axis.name == "date":
-                    dates = c.values[0]
-                    coords[str(dates)] = {}
-                    coords[str(dates)]['composite'] = []
-                    coords[str(dates)]['t'] = [str(c.values[0]) + "Z"]
-                    range_dict[str(dates)] = {}
+                    dates = c.values
+                    for date in dates:
+                        coords[str(date)] = {}
+                        coords[str(date)]['composite'] = []
+                        coords[str(date)]['t'] = [str(date) + "Z"]
+                    for date in c.values:
+                        range_dict[str(date)] = {}
                 if c.axis.name == "number":
                     number = c.values
                     for num in number:
@@ -228,12 +233,15 @@ class BoundingBox(Encoder):
             tree.result = [float(val) for val in tree.result]
             #num_intervals = int(len(tree.result)/len(number))
             #para_intervals = int(num_intervals/len(param))
+            len_paras = len(param)
 
-            for val in tree.values:
-                coords[str(dates)]['composite'].append([lat, val])
+            for date in dates:
+                for val in tree.values:
+                    coords[str(date)]['composite'].append([lat, val])
 
-            for i, para in enumerate(param):
-                range_dict[str(dates)][para].append(tree.result[i])
+            for j, date in enumerate(dates):
+                for i, para in enumerate(param):
+                    range_dict[str(date)][para].append(tree.result[i + (j*len_paras)])
 
     """
     def func(self, tree, lat, coords, mars_metadata, param, range_dict, number):
