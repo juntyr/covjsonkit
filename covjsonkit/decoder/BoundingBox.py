@@ -39,15 +39,18 @@ class BoundingBox(Decoder):
         pass
 
     def to_xarray(self):
-        dims = ["number", "steps", "points"]
+        #dims = ["number", "steps", "points"]
+        dims = ["datetimes","points"]
         dataarraydict = {}
 
         # Get coordinates
         x = []
         y = []
+        datetimes = []
         for coord in self.get_coordinates()["composite"]["values"]:
             x.append(float(coord[0]))
             y.append(float(coord[1]))
+        
 
         """
         # Get values
@@ -63,24 +66,25 @@ class BoundingBox(Decoder):
         for parameter in self.parameters:  
             values[parameter] = [] 
 
-        numbers = []
-        steps = []
+        #numbers = []
+        #steps = []
         for coverage in self.coverages:
-            numbers.append(coverage['mars:metadata']["number"])
-            steps.append(coverage['mars:metadata']["step"])
+            datetimes.append(coverage['domain']['axes']["t"]["values"][0])
+            #numbers.append(coverage['mars:metadata']["number"])
+            #steps.append(coverage['mars:metadata']["step"])
             for parameter in self.parameters:
                 values[parameter].append(coverage['ranges'][parameter]["values"])
 
-        numbers = list(set(numbers))
-        steps = list(set(steps))
+        #numbers = list(set(numbers))
+        #steps = list(set(steps))
 
         new_values = {}
         for parameter in self.parameters:
             new_values[parameter] = []
-            for i, num in enumerate(numbers):
-                new_values[parameter].append([])
-                for j, step in enumerate(steps):
-                    new_values[parameter][i].append(values[parameter][i*len(steps) + j])
+            for i, dt in enumerate(datetimes):
+                new_values[parameter].append(values[parameter][i])
+            #    for j, step in enumerate(steps):
+            #        new_values[parameter][i].append(values[parameter][i*len(steps) + j])
 
 
         for parameter in self.parameters:
@@ -92,7 +96,9 @@ class BoundingBox(Decoder):
 
         ds = xr.Dataset(
             dataarraydict,
-            coords=dict(number=(['number'], numbers), steps=(['steps'], steps), points=(["points"], list(range(0, len(x)))), x=(["points"], x), y=(["points"], y)),
+            #coords=dict(number=(['number'], numbers), steps=(['steps'], steps), points=(["points"], list(range(0, len(x)))), x=(["points"], x), y=(["points"], y)),
+            coords=dict(datetimes=(['datetimes'], datetimes), points=(["points"], list(range(0, len(x)))), x=(["points"], x), y=(["points"], y)),
+
         )
         for mars_metadata in self.mars_metadata[0]:
             ds.attrs[mars_metadata] = self.mars_metadata[0][mars_metadata]
