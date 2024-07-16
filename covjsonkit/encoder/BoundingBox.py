@@ -149,10 +149,11 @@ class BoundingBox(Encoder):
         lat = 0
         param = 0
         number = 0
+        levels = [0]
         step = 0
         self.coord_length = 0
 
-        self.func(result, lat, coords, mars_metadata, param, range_dict, number, step, dates)
+        self.func(result, lat, coords, mars_metadata, param, range_dict, number, step, dates, levels)
 
 
         self.add_reference(
@@ -184,6 +185,9 @@ class BoundingBox(Encoder):
                 mm['step'] = step
                 self.add_coverage(mm, coords, val_dict[step])
         """
+        #for date in range_dict.keys():
+        #    coor = coords[date]
+        #    break
         for date in range_dict.keys():
             self.add_coverage(mars_metadata, coords[date], range_dict[date])
 
@@ -194,11 +198,11 @@ class BoundingBox(Encoder):
         return self.covjson
 
 
-    def func(self, tree, lat, coords, mars_metadata, param, range_dict, number, step, dates):
+    def func(self, tree, lat, coords, mars_metadata, param, range_dict, number, step, dates, levels):
         if len(tree.children) != 0:
         # recurse while we are not a leaf
             for c in tree.children:
-                if c.axis.name != "latitude" and c.axis.name != "longitude" and c.axis.name != "param" and c.axis.name != "date":
+                if c.axis.name != "latitude" and c.axis.name != "longitude" and c.axis.name != "param" and c.axis.name != "date" and c.axis.name != "levelist":
                     mars_metadata[c.axis.name] = c.values[0]
                 if c.axis.name == "latitude":
                     lat = c.values[0]
@@ -225,8 +229,11 @@ class BoundingBox(Encoder):
                         for para in param:
                             for s in step:
                                 range_dict[num][para][s] = []
+                if c.axis.name == "levelist":
+                    levels = c.values
+                    coord_length = len(c.values)
 
-                self.func(c, lat, coords, mars_metadata, param, range_dict, number, step, dates)
+                self.func(c, lat, coords, mars_metadata, param, range_dict, number, step, dates, levels)
         else:
             #vals = len(tree.values)
             tree.values = [float(val) for val in tree.values]
@@ -234,14 +241,17 @@ class BoundingBox(Encoder):
             #num_intervals = int(len(tree.result)/len(number))
             #para_intervals = int(num_intervals/len(param))
             len_paras = len(param)
+            lev_lens = len(levels)
 
             for date in dates:
-                for val in tree.values:
-                    coords[str(date)]['composite'].append([lat, val])
+                for level in levels:
+                    for val in tree.values:
+                        coords[str(date)]['composite'].append([lat, val, level])
 
             for j, date in enumerate(dates):
-                for i, para in enumerate(param):
-                    range_dict[str(date)][para].append(tree.result[i + (j*len_paras)])
+                for k, lev in enumerate(levels):
+                    for i, para in enumerate(param):
+                        range_dict[str(date)][para].append(tree.result[i + (j*(lev_lens*len_paras))+ (k*len_paras)])
 
     """
     def func(self, tree, lat, coords, mars_metadata, param, range_dict, number):
