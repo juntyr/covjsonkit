@@ -10,6 +10,7 @@ class Shapefile(Encoder):
     def __init__(self, type, domaintype):
         super().__init__(type, domaintype)
         self.covjson["domainType"] = "MultiPoint"
+        self.covjson['coverages'] = []
 
     def add_coverage(self, mars_metadata, coords, values):
         new_coverage = {}
@@ -20,8 +21,9 @@ class Shapefile(Encoder):
         self.add_mars_metadata(new_coverage, mars_metadata)
         self.add_domain(new_coverage, coords)
         self.add_range(new_coverage, values)
-        cov = Coverage.model_validate_json(json.dumps(new_coverage))
-        self.pydantic_coverage.coverages.append(cov)
+        self.covjson['coverages'].append(new_coverage)
+        #cov = Coverage.model_validate_json(json.dumps(new_coverage))
+        #self.pydantic_coverage.coverages.append(cov)
 
     def add_domain(self, coverage, coords):
         coverage["domain"]["type"] = "Domain"
@@ -30,7 +32,7 @@ class Shapefile(Encoder):
         coverage["domain"]["axes"]["t"]["values"] = coords["t"]
         coverage["domain"]["axes"]["composite"] = {}
         coverage["domain"]["axes"]["composite"]["dataType"] = "tuple"
-        coverage["domain"]["axes"]["composite"]["coordinates"] = self.pydantic_coverage.referencing[0].coordinates
+        coverage["domain"]["axes"]["composite"]["coordinates"] = self.covjson['referencing'][0]['coordinates'] #self.pydantic_coverage.referencing[0].coordinates
         coverage["domain"]["axes"]["composite"]["values"] = coords["composite"]
 
     def add_range(self, coverage, values):
@@ -79,29 +81,21 @@ class Shapefile(Encoder):
         self.add_coverage(mars_metadata, coords, range_dicts)
         return self.covjson
 
-    def from_polytope(self, result):
-        ancestors = [val.get_ancestors() for val in result.leaves]
-        values = [val.result for val in result.leaves]
+    def from_polytope(self, result): 
+   
+        coords  = {}
+        mars_metadata = {}
+        range_dict = {}
+        dates = []
+        lat = 0
+        param = 0
+        number = 0
+        levels = [0]
+        step = 0
+        self.coord_length = 0
 
-        columns = []
-        df_dict = {}
-        # Create empty dataframe
-        for feature in ancestors[0]:
-            columns.append(str(feature).split("=")[0])
-            df_dict[str(feature).split("=")[0]] = []
+        self.func(result, lat, coords, mars_metadata, param, range_dict, number, step, dates, levels)
 
-        # populate dataframe
-        for ancestor in ancestors:
-            for feature in ancestor:
-                df_dict[str(feature).split("=")[0]].append(str(feature).split("=")[1])
-        values = [val.result for val in result.leaves]
-        df_dict["values"] = values
-        df = pd.DataFrame(df_dict)
-
-        params = df["param"].unique()
-
-        for param in params:
-            self.add_parameter(param)
 
         self.add_reference(
             {
@@ -112,27 +106,75 @@ class Shapefile(Encoder):
                 },
             }
         )
+        
+        for date in range_dict.keys():
+            for param in range_dict[date].keys():
+                self.coord_length = len(range_dict[date][param])
+                self.add_parameter(param)
+            break
 
-        mars_metadata = {}
-        mars_metadata["class"] = df["class"].unique()[0]
-        mars_metadata["expver"] = df["expver"].unique()[0]
-        mars_metadata["levtype"] = df["levtype"].unique()[0]
-        mars_metadata["type"] = df["type"].unique()[0]
-        mars_metadata["domain"] = df["domain"].unique()[0]
-        mars_metadata["stream"] = df["stream"].unique()[0]
+        for date in range_dict.keys():
+            self.add_coverage(mars_metadata, coords[date], range_dict[date])
 
-        range_dict = {}
-        coords = {}
-        coords["composite"] = []
-        coords["t"] = [df["date"].unique()[0] + "Z"]
+        #self.add_coverage(mars_metadata, coords, range_dict)
+        #return self.covjson
+        #with open('data.json', 'w') as f:
+        #    json.dump(self.covjson, f)
+        return self.covjson
 
-        for param in params:
-            df_param = df[df["param"] == param]
-            range_dict[param] = df_param["values"].values.tolist()
 
-        df_param = df[df["param"] == params[0]]
-        for row in df_param.iterrows():
-            coords["composite"].append([row[1]["latitude"], row[1]["longitude"]])
+    def func(self, tree, lat, coords, mars_metadata, param, range_dict, number, step, dates, levels):
+        if len(tree.children) != 0:
+        # recurse while we are not a leaf
+            for c in tree.children:
+                if c.axis.name != "latitude" and c.axis.name != "longitude" and c.axis.name != "param" and c.axis.name != "date" and c.axis.name != "levelist":
+                    mars_metadata[c.axis.name] = c.values[0]
+                if c.axis.name == "latitude":
+                    lat = c.values[0]
+                if c.axis.name == "param":
+                    param = c.values
+                    for date in dates:
+                        for para in param:
+                            range_dict[str(date)][para] = []
+                if c.axis.name == "date":
+                    dates = c.values
+                    for date in dates:
+                        coords[str(date)] = {}
+                        coords[str(date)]['composite'] = []
+                        coords[str(date)]['t'] = [str(date) + "Z"]
+                    for date in c.values:
+                        range_dict[str(date)] = {}
+                if c.axis.name == "number":
+                    number = c.values
+                    for num in number:
+                        range_dict[num] = {}
+                if c.axis.name == "step":
+                    step = c.values
+                    for num in number:
+                        for para in param:
+                            for s in step:
+                                range_dict[num][para][s] = []
+                if c.axis.name == "levelist":
+                    levels = c.values
+                    coord_length = len(c.values)
 
-        self.add_coverage(mars_metadata, coords, range_dict)
-        return json.loads(self.get_json())
+                self.func(c, lat, coords, mars_metadata, param, range_dict, number, step, dates, levels)
+        else:
+            #vals = len(tree.values)
+            tree.values = [float(val) for val in tree.values]
+            tree.result = [float(val) for val in tree.result]
+            #num_intervals = int(len(tree.result)/len(number))
+            #para_intervals = int(num_intervals/len(param))
+            len_paras = len(param)
+            lev_lens = len(levels)
+
+            for date in dates:
+                for level in levels:
+                    for val in tree.values:
+                        coords[str(date)]['composite'].append([lat, val, level])
+
+            for j, date in enumerate(dates):
+                for k, lev in enumerate(levels):
+                    for i, para in enumerate(param):
+                        range_dict[str(date)][para].append(tree.result[i + (j*(lev_lens*len_paras))+ (k*len_paras)])
+
