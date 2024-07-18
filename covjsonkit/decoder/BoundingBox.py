@@ -27,9 +27,6 @@ class BoundingBox(Decoder):
             values[parameter] = []
             for range in self.ranges:
                 values[parameter].append(range[parameter]["values"])
-            # values[parameter] = [
-            #    value for sublist in values[parameter] for value in sublist
-            # ]
         return values
 
     def get_coordinates(self):
@@ -46,45 +43,28 @@ class BoundingBox(Decoder):
         # Get coordinates
         x = []
         y = []
+        z = []
         datetimes = []
         for coord in self.get_coordinates()["composite"]["values"]:
             x.append(float(coord[0]))
             y.append(float(coord[1]))
-        
-
-        """
-        # Get values
-        for parameter in self.parameters:
-            dataarray = xr.DataArray(self.get_values()[parameter][0], dims=dims)
-            dataarray.attrs["type"] = self.get_parameter_metadata(parameter)["type"]
-            dataarray.attrs["units"] = self.get_parameter_metadata(parameter)["unit"]["symbol"]
-            dataarray.attrs["long_name"] = self.get_parameter_metadata(parameter)["observedProperty"]["id"]
-            dataarraydict[dataarray.attrs["long_name"]] = dataarray
-        """
+            z.append(float(coord[2]))
 
         values = {}
         for parameter in self.parameters:  
             values[parameter] = [] 
 
-        #numbers = []
-        #steps = []
         for coverage in self.coverages:
             datetimes.append(coverage['domain']['axes']["t"]["values"][0])
-            #numbers.append(coverage['mars:metadata']["number"])
-            #steps.append(coverage['mars:metadata']["step"])
             for parameter in self.parameters:
                 values[parameter].append(coverage['ranges'][parameter]["values"])
 
-        #numbers = list(set(numbers))
-        #steps = list(set(steps))
 
         new_values = {}
         for parameter in self.parameters:
             new_values[parameter] = []
             for i, dt in enumerate(datetimes):
                 new_values[parameter].append(values[parameter][i])
-            #    for j, step in enumerate(steps):
-            #        new_values[parameter][i].append(values[parameter][i*len(steps) + j])
 
 
         for parameter in self.parameters:
@@ -96,8 +76,7 @@ class BoundingBox(Decoder):
 
         ds = xr.Dataset(
             dataarraydict,
-            #coords=dict(number=(['number'], numbers), steps=(['steps'], steps), points=(["points"], list(range(0, len(x)))), x=(["points"], x), y=(["points"], y)),
-            coords=dict(datetimes=(['datetimes'], datetimes), points=(["points"], list(range(0, len(x)))), x=(["points"], x), y=(["points"], y)),
+            coords=dict(datetimes=(['datetimes'], datetimes), points=(["points"], list(range(0, len(x)))), x=(["points"], x), y=(["points"], y), z=(["points"], z))
 
         )
         for mars_metadata in self.mars_metadata[0]:

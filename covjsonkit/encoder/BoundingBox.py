@@ -34,7 +34,7 @@ class BoundingBox(Encoder):
         coverage["domain"]["axes"]["composite"] = {}
         coverage["domain"]["axes"]["composite"]["dataType"] = "tuple"
         coverage["domain"]["axes"]["composite"]["coordinates"] = self.covjson['referencing'][0]['coordinates'] #self.pydantic_coverage.referencing[0].coordinates
-        coverage["domain"]["axes"]["composite"]["values"] = coords["composite"][0:self.coord_length]
+        coverage["domain"]["axes"]["composite"]["values"] = coords["composite"]#[0:self.coord_length]
 
     def add_range(self, coverage, values):
         for parameter in values.keys():
@@ -82,66 +82,8 @@ class BoundingBox(Encoder):
         self.add_coverage(mars_metadata, coords, range_dicts)
         return self.covjson
 
-    def from_polytope(self, result):
-        """
-        ancestors = []
-        values = []
-        for val in result.leaves:
-            ancestors.append(val.get_ancestors())
-            values.append(val.result)
-
-        df_dict = {}
-        # Create empty dataframe
-        for feature in ancestors[0]:
-            df_dict[feature.axis.name] = []
-
-        # populate dataframe
-        for ancestor in ancestors:
-            for feature in ancestor:
-                df_dict[feature.axis.name].append(feature.value)
-        df_dict["values"] = values
-        df = pd.DataFrame(df_dict)
-
-        params = df["param"].unique()
-
-        for param in params:
-            self.add_parameter(param)
-
-        self.add_reference(
-            {
-                "coordinates": ["x", "y", "z"],
-                "system": {
-                    "type": "GeographicCRS",
-                    "id": "http://www.opengis.net/def/crs/OGC/1.3/CRS84",
-                },
-            }
-        )
-
-        mars_metadata = {}
-        mars_metadata["class"] = df["class"].unique()[0]
-        mars_metadata["expver"] = df["expver"].unique()[0]
-        mars_metadata["levtype"] = df["levtype"].unique()[0]
-        mars_metadata["type"] = df["type"].unique()[0]
-        mars_metadata["domain"] = df["domain"].unique()[0]
-        mars_metadata["stream"] = df["stream"].unique()[0]
-
-        range_dict = {}
-        coords = {}
-        coords["composite"] = []
-        coords["t"] = [str(df["date"].unique()[0]) + "Z"]
-
-        for param in params:
-            df_param = df[df["param"] == param]
-            range_dict[param] = df_param["values"].values.tolist()
-
-        df_param = df[df["param"] == params[0]]
-        lat = df_param["latitude"].values.tolist()
-        long = df_param["longitude"].values.tolist()
-        latlong = zip(lat, long)
-        for lat, long in latlong:
-            coords["composite"].append([lat, long])
-
-        """
+    def from_polytope(self, result): 
+   
         coords  = {}
         mars_metadata = {}
         range_dict = {}
@@ -171,23 +113,7 @@ class BoundingBox(Encoder):
                 self.coord_length = len(range_dict[date][param])
                 self.add_parameter(param)
             break
-        """
-        for num in range_dict.keys():
-            val_dict = {}
-            for step in range_dict[1][self.parameters[0]].keys():
-                val_dict[step] = {}
-            for para in range_dict[num].keys():
-                for step in range_dict[num][para].keys():
-                    val_dict[step][para] = range_dict[num][para][step]
-            for step in val_dict.keys():
-                mm = mars_metadata.copy()
-                mm["number"] = num
-                mm['step'] = step
-                self.add_coverage(mm, coords, val_dict[step])
-        """
-        #for date in range_dict.keys():
-        #    coor = coords[date]
-        #    break
+
         for date in range_dict.keys():
             self.add_coverage(mars_metadata, coords[date], range_dict[date])
 
@@ -253,61 +179,3 @@ class BoundingBox(Encoder):
                     for i, para in enumerate(param):
                         range_dict[str(date)][para].append(tree.result[i + (j*(lev_lens*len_paras))+ (k*len_paras)])
 
-    """
-    def func(self, tree, lat, coords, mars_metadata, param, range_dict, number):
-        if len(tree.children) != 0:
-        # recurse while we are not a leaf
-            for c in tree.children:
-                if c.axis.name != "latitude" and c.axis.name != "longitude" and c.axis.name != "param" and c.axis.name != "date":
-                    mars_metadata[c.axis.name] = c.values[0]
-                if c.axis.name == "latitude":
-                    lat = c.values[0]
-                if c.axis.name == "param":
-                    param = c.values
-                    for key in range_dict:
-                        for para in param:
-                            range_dict[key][para] = []
-                if c.axis.name == "date":
-                    coords['t'] = [str(c.values[0]) + "Z"]
-                if c.axis.name == "number":
-                    number = c.values
-                    for num in number:
-                        range_dict[num] = {}
-
-                self.func(c, lat, coords, mars_metadata, param, range_dict, number)
-        else:
-            vals = len(tree.values)
-            tree.values = [float(val) for val in tree.values]
-            tree.result = [float(val) for val in tree.result]
-            num_intervals = int(len(tree.result)/len(number))
-            step_intervals = 0
-            for val in tree.values:
-                coords['composite'].append([lat, val])
-            for num in range_dict:
-                for i, para in enumerate(param):
-                    range_dict[num][para].extend(tree.result[((int(num)-1)*num_intervals)+((i*vals)):((int(num)-1)*num_intervals)+((i+1)*(vals))])
-    """
-    """       
-    def func(self, tree, lat, coords, mars_metadata, param, range_dict, number):
-        if len(tree.children) != 0:
-        # recurse while we are not a leaf
-            for c in tree.children:
-                if c.axis.name != "latitude" and c.axis.name != "longitude" and c.axis.name != "param" and c.axis.name != "date":
-                    mars_metadata[c.axis.name] = c.values[0]
-                if c.axis.name == "latitude":
-                    lat = c.values[0]
-                if c.axis.name == "param":
-                    param = c.values
-                    for para in param:
-                        range_dict[para] = []
-                if c.axis.name == "date":
-                    coords['t'] = [str(c.values[0]) + "Z"]
-
-                self.func(c, lat, coords, mars_metadata, param, range_dict)
-        else:
-            vals = len(tree.values)
-            for val in tree.values:
-                coords['composite'].append([lat, val])
-            for i, para in enumerate(param):
-                range_dict[para].extend(tree.result[(i)*vals:(i+1)*vals])
-    """
