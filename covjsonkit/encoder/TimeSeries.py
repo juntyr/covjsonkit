@@ -215,7 +215,6 @@ class TimeSeries(Encoder):
         #    mm = mars_metadata.copy()
         #    mm["number"] = num
         #    self.add_coverage(mm, coords, val_dict[num])
-        print(range_dict)
         #for param in range_dict.keys():
         self.add_coverage(mars_metadata, coords, range_dict) 
         
