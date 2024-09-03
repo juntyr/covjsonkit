@@ -92,7 +92,9 @@ class TestDecoder:
                     "coordinates": ["z"],
                     "system": {
                         "type": "VerticalCRS",
-                        "cs": {"csAxes": [{"name": {"en": "level"}, "direction": "down"}]},
+                        "cs": {
+                            "csAxes": [{"name": {"en": "level"}, "direction": "down"}]
+                        },
                     },
                 },
             ],

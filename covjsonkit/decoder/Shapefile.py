@@ -39,8 +39,8 @@ class Shapefile(Decoder):
         pass
 
     def to_xarray(self):
-        #dims = ["number", "steps", "points"]
-        dims = ["datetimes","points"]
+        # dims = ["number", "steps", "points"]
+        dims = ["datetimes", "points"]
         dataarraydict = {}
 
         # Get coordinates
@@ -54,14 +54,13 @@ class Shapefile(Decoder):
             z.append(float(coord[2]))
 
         values = {}
-        for parameter in self.parameters:  
-            values[parameter] = [] 
+        for parameter in self.parameters:
+            values[parameter] = []
 
         for coverage in self.coverages:
-            datetimes.append(coverage['domain']['axes']["t"]["values"][0])
+            datetimes.append(coverage["domain"]["axes"]["t"]["values"][0])
             for parameter in self.parameters:
-                values[parameter].append(coverage['ranges'][parameter]["values"])
-
+                values[parameter].append(coverage["ranges"][parameter]["values"])
 
         new_values = {}
         for parameter in self.parameters:
@@ -69,18 +68,26 @@ class Shapefile(Decoder):
             for i, dt in enumerate(datetimes):
                 new_values[parameter].append(values[parameter][i])
 
-
         for parameter in self.parameters:
             dataarray = xr.DataArray(new_values[parameter], dims=dims)
             dataarray.attrs["type"] = self.get_parameter_metadata(parameter)["type"]
-            dataarray.attrs["units"] = self.get_parameter_metadata(parameter)["unit"]["symbol"]
-            dataarray.attrs["long_name"] = self.get_parameter_metadata(parameter)["observedProperty"]["id"]
+            dataarray.attrs["units"] = self.get_parameter_metadata(parameter)["unit"][
+                "symbol"
+            ]
+            dataarray.attrs["long_name"] = self.get_parameter_metadata(parameter)[
+                "observedProperty"
+            ]["id"]
             dataarraydict[dataarray.attrs["long_name"]] = dataarray
 
         ds = xr.Dataset(
             dataarraydict,
-            coords=dict(datetimes=(['datetimes'], datetimes), points=(["points"], list(range(0, len(x)))), x=(["points"], x), y=(["points"], y), z=(["points"], z))
-
+            coords=dict(
+                datetimes=(["datetimes"], datetimes),
+                points=(["points"], list(range(0, len(x)))),
+                x=(["points"], x),
+                y=(["points"], y),
+                z=(["points"], z),
+            ),
         )
         for mars_metadata in self.mars_metadata[0]:
             ds.attrs[mars_metadata] = self.mars_metadata[0][mars_metadata]

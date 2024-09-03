@@ -156,17 +156,25 @@ class TestEncoder:
     def test_standard_Coverage(self):
         encoder_obj = Covjsonkit().encode("CoverageCollection", "PointSeries")
         covjson = CoverageCollection(
-            type="CoverageCollection", coverages=[], domainType=DomainType.point_series, parameters={}, referencing=[]
+            type="CoverageCollection",
+            coverages=[],
+            domainType=DomainType.point_series,
+            parameters={},
+            referencing=[],
         )
 
-        assert encoder_obj.get_json() == covjson.model_dump_json(exclude_none=True, indent=4)
+        assert encoder_obj.get_json() == covjson.model_dump_json(
+            exclude_none=True, indent=4
+        )
 
     def test_add_parameter(self):
         encoder_obj = Covjsonkit().encode("CoverageCollection", "PointSeries")
         encoder_obj.add_parameter(167)
         encoder_obj.add_parameter(166)
 
-        json_string = encoder_obj.pydantic_coverage.model_dump_json(exclude_none=True, indent=4)
+        json_string = encoder_obj.pydantic_coverage.model_dump_json(
+            exclude_none=True, indent=4
+        )
         assert CoverageCollection.model_validate_json(json_string)
 
     def test_add_reference(self):
@@ -180,9 +188,16 @@ class TestEncoder:
                 },
             }
         )
-        encoder_obj.add_reference({"coordinates": ["t"], "system": {"type": "TemporalRS", "calendar": "Gregorian"}})
+        encoder_obj.add_reference(
+            {
+                "coordinates": ["t"],
+                "system": {"type": "TemporalRS", "calendar": "Gregorian"},
+            }
+        )
 
-        json_string = encoder_obj.pydantic_coverage.model_dump_json(exclude_none=True, indent=4)
+        json_string = encoder_obj.pydantic_coverage.model_dump_json(
+            exclude_none=True, indent=4
+        )
         assert CoverageCollection.model_validate_json(json_string)
 
     def test_add_coverage(self):
@@ -197,7 +212,12 @@ class TestEncoder:
                 },
             }
         )
-        encoder.add_reference({"coordinates": ["t"], "system": {"type": "TemporalRS", "calendar": "Gregorian"}})
+        encoder.add_reference(
+            {
+                "coordinates": ["t"],
+                "system": {"type": "TemporalRS", "calendar": "Gregorian"},
+            }
+        )
 
         # metadatas = []
         coords = []
@@ -223,11 +243,15 @@ class TestEncoder:
                 "t": timestamps,
             }
             coords.append(coord)
-            value = {"2t": [random.uniform(230, 270) for _ in range(0, len(timestamps))]}
+            value = {
+                "2t": [random.uniform(230, 270) for _ in range(0, len(timestamps))]
+            }
             values.append(value)
             encoder.add_coverage(metadata, coord, value)
 
-        json_string = encoder.pydantic_coverage.model_dump_json(exclude_none=True, indent=4)
+        json_string = encoder.pydantic_coverage.model_dump_json(
+            exclude_none=True, indent=4
+        )
         assert CoverageCollection.model_validate_json(json_string)
 
         print(json_string)

@@ -11,7 +11,7 @@ class TimeSeries(Encoder):
     def __init__(self, type, domaintype):
         super().__init__(type, domaintype)
         self.covjson["domainType"] = "PointSeries"
-        self.covjson['coverages'] = []
+        self.covjson["coverages"] = []
 
     def add_coverage(self, mars_metadata, coords, values):
         new_coverage = {}
@@ -22,9 +22,9 @@ class TimeSeries(Encoder):
         self.add_mars_metadata(new_coverage, mars_metadata)
         self.add_domain(new_coverage, coords)
         self.add_range(new_coverage, values)
-        self.covjson['coverages'].append(new_coverage)
-        #cov = Coverage.model_validate_json(json.dumps(new_coverage))
-        #self.pydantic_coverage.coverages.append(cov)
+        self.covjson["coverages"].append(new_coverage)
+        # cov = Coverage.model_validate_json(json.dumps(new_coverage))
+        # self.pydantic_coverage.coverages.append(cov)
 
     def add_domain(self, coverage, coords):
         coverage["domain"]["type"] = "Domain"
@@ -166,11 +166,11 @@ class TimeSeries(Encoder):
         return json.loads(self.get_json())
         """
 
-        coords  = {}
-        coords['x'] = []
-        coords['y'] = []
-        coords['z'] = []
-        coords['t'] = []
+        coords = {}
+        coords["x"] = []
+        coords["y"] = []
+        coords["z"] = []
+        coords["t"] = []
         mars_metadata = {}
         range_dict = {}
         lat = 0
@@ -180,7 +180,7 @@ class TimeSeries(Encoder):
         long = 0
 
         self.func(result, lat, long, coords, mars_metadata, param, range_dict, step)
-        #print(range_dict)
+        # print(range_dict)
 
         self.add_reference(
             {
@@ -191,20 +191,20 @@ class TimeSeries(Encoder):
                 },
             }
         )
-        
+
         for param in range_dict.keys():
             self.add_parameter(param)
 
-        #for step in range_dict[1][self.parameters[0]].keys():
+        # for step in range_dict[1][self.parameters[0]].keys():
         #    date_format = "%Y%m%dT%H%M%S"
         #    date = pd.Timestamp(coords["t"][0]).strftime(date_format)
         #    start_time = datetime.strptime(date, date_format)
-            # add current date to list by converting it to iso format
+        # add current date to list by converting it to iso format
         #    stamp = start_time + timedelta(hours=int(step))
         #    coords["t"].append(stamp.isoformat() + "Z")
 
-        #val_dict = {}
-        #for num in range_dict.keys():
+        # val_dict = {}
+        # for num in range_dict.keys():
         #    val_dict[num] = {}
         #    for para in range_dict[1].keys():
         #        val_dict[num][para] = []
@@ -215,16 +215,22 @@ class TimeSeries(Encoder):
         #    mm = mars_metadata.copy()
         #    mm["number"] = num
         #    self.add_coverage(mm, coords, val_dict[num])
-        #for param in range_dict.keys():
-        self.add_coverage(mars_metadata, coords, range_dict) 
-        
-        return self.covjson  
+        # for param in range_dict.keys():
+        self.add_coverage(mars_metadata, coords, range_dict)
+
+        return self.covjson
 
     def func(self, tree, lat, long, coords, mars_metadata, param, range_dict, step):
         if len(tree.children) != 0:
-        # recurse while we are not a leaf
+            # recurse while we are not a leaf
             for c in tree.children:
-                if c.axis.name != "latitude" and c.axis.name != "longitude" and c.axis.name != "param" and c.axis.name != "step" and c.axis.name != "date":
+                if (
+                    c.axis.name != "latitude"
+                    and c.axis.name != "longitude"
+                    and c.axis.name != "param"
+                    and c.axis.name != "step"
+                    and c.axis.name != "date"
+                ):
                     mars_metadata[c.axis.name] = c.values[0]
                 if c.axis.name == "latitude":
                     lat = c.values[0]
@@ -234,7 +240,7 @@ class TimeSeries(Encoder):
                         range_dict[para] = []
                 if c.axis.name == "date":
                     for date in c.values:
-                        coords['t'].append(str(date) + "Z")
+                        coords["t"].append(str(date) + "Z")
                     mars_metadata[c.axis.name] = str(c.values[0]) + "Z"
                 if c.axis.name == "step":
                     step = c.values
@@ -248,13 +254,13 @@ class TimeSeries(Encoder):
             vals = len(tree.values)
             tree.values = [float(val) for val in tree.values]
             tree.result = [float(val) for val in tree.result]
-            dates = len(coords['t'])
+            dates = len(coords["t"])
             paras = len(param)
 
-            coords['x'] = [lat]
-            coords['y'] = [long]
-            coords['z'] = ['sfc']
+            coords["x"] = [lat]
+            coords["y"] = [long]
+            coords["z"] = ["sfc"]
 
-            for i, date in enumerate(coords['t']):
+            for i, date in enumerate(coords["t"]):
                 for j, para in enumerate(param):
-                    range_dict[para].append(tree.result[i*paras + j])
+                    range_dict[para].append(tree.result[i * paras + j])

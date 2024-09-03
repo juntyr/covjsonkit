@@ -145,17 +145,25 @@ class TestEncoder:
     def test_standard_Coverage(self):
         encoder_obj = Covjsonkit().encode("CoverageCollection", "BoundingBox")
         covjson = CoverageCollection(
-            type="CoverageCollection", coverages=[], domainType=DomainType.multi_point, parameters={}, referencing=[]
+            type="CoverageCollection",
+            coverages=[],
+            domainType=DomainType.multi_point,
+            parameters={},
+            referencing=[],
         )
 
-        assert encoder_obj.get_json() == covjson.model_dump_json(exclude_none=True, indent=4)
+        assert encoder_obj.get_json() == covjson.model_dump_json(
+            exclude_none=True, indent=4
+        )
 
     def test_add_parameter(self):
         encoder_obj = Covjsonkit().encode("CoverageCollection", "BoundingBox")
         encoder_obj.add_parameter(167)
         encoder_obj.add_parameter(166)
 
-        json_string = encoder_obj.pydantic_coverage.model_dump_json(exclude_none=True, indent=4)
+        json_string = encoder_obj.pydantic_coverage.model_dump_json(
+            exclude_none=True, indent=4
+        )
         assert CoverageCollection.model_validate_json(json_string)
 
     def test_add_reference(self):
@@ -169,9 +177,16 @@ class TestEncoder:
                 },
             }
         )
-        encoder_obj.add_reference({"coordinates": ["t"], "system": {"type": "TemporalRS", "calendar": "Gregorian"}})
+        encoder_obj.add_reference(
+            {
+                "coordinates": ["t"],
+                "system": {"type": "TemporalRS", "calendar": "Gregorian"},
+            }
+        )
 
-        json_string = encoder_obj.pydantic_coverage.model_dump_json(exclude_none=True, indent=4)
+        json_string = encoder_obj.pydantic_coverage.model_dump_json(
+            exclude_none=True, indent=4
+        )
         assert CoverageCollection.model_validate_json(json_string)
 
     def test_add_coverage(self):
@@ -205,7 +220,9 @@ class TestEncoder:
         value = {"2t": [111, 222, 333]}
         encoder.add_coverage(metadata, coords, value)
 
-        json_string = encoder.pydantic_coverage.model_dump_json(exclude_none=True, indent=4)
+        json_string = encoder.pydantic_coverage.model_dump_json(
+            exclude_none=True, indent=4
+        )
         assert CoverageCollection.model_validate_json(json_string)
         print(json_string)
 

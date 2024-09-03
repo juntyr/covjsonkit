@@ -52,14 +52,21 @@ class Path(Decoder):
         for parameter in self.parameters:
             dataarray = xr.DataArray(self.get_values()[parameter][0], dims=dims)
             dataarray.attrs["type"] = self.get_parameter_metadata(parameter)["type"]
-            dataarray.attrs["units"] = self.get_parameter_metadata(parameter)["unit"]["symbol"]
-            dataarray.attrs["long_name"] = self.get_parameter_metadata(parameter)["observedProperty"]["id"]
+            dataarray.attrs["units"] = self.get_parameter_metadata(parameter)["unit"][
+                "symbol"
+            ]
+            dataarray.attrs["long_name"] = self.get_parameter_metadata(parameter)[
+                "observedProperty"
+            ]["id"]
             dataarraydict[dataarray.attrs["long_name"]] = dataarray
 
         ds = xr.Dataset(
             dataarraydict,
             coords=dict(
-                points=(["points"], list(range(0, len(x)))), x=(["points"], x), y=(["points"], y), t=(["points"], t)
+                points=(["points"], list(range(0, len(x)))),
+                x=(["points"], x),
+                y=(["points"], y),
+                t=(["points"], t),
             ),
         )
         for mars_metadata in self.mars_metadata[0]:

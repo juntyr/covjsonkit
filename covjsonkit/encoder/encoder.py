@@ -7,7 +7,13 @@ from covjson_pydantic.domain import DomainType
 from covjson_pydantic.parameter import Parameter
 from covjson_pydantic.reference_system import ReferenceSystemConnectionObject
 
-from covjsonkit.param_db import get_param_from_db, get_unit_from_db, get_param_ids, get_params, get_units
+from covjsonkit.param_db import (
+    get_param_from_db,
+    get_unit_from_db,
+    get_param_ids,
+    get_params,
+    get_units,
+)
 
 
 class Encoder(ABC):
@@ -43,13 +49,17 @@ class Encoder(ABC):
             self.domaintype = DomainType.trajectory
 
         self.pydantic_coverage = CoverageCollection(
-            type=type, coverages=[], domainType=self.domaintype, parameters={}, referencing=[]
+            type=type,
+            coverages=[],
+            domainType=self.domaintype,
+            parameters={},
+            referencing=[],
         )
         self.parameters = []
 
     def add_parameter(self, param):
-        #param_dict = get_param_from_db(param)
-        #unit = get_unit_from_db(param_dict["unit_id"])
+        # param_dict = get_param_from_db(param)
+        # unit = get_unit_from_db(param_dict["unit_id"])
         param_dict = self.params[str(param)]
         unit = self.units[str(param_dict["unit_id"])]
         parameter = {
@@ -61,10 +71,10 @@ class Encoder(ABC):
                 "label": {"en": param_dict["name"]},
             },
         }
-        #self.pydantic_coverage.parameters[param_dict["shortname"]] = Parameter.model_validate_json(
+        # self.pydantic_coverage.parameters[param_dict["shortname"]] = Parameter.model_validate_json(
         #    json.dumps(parameter)
-        #)
-        if 'parameters' not in self.covjson:
+        # )
+        if "parameters" not in self.covjson:
             self.covjson["parameters"] = {}
             self.covjson["parameters"][param_dict["shortname"]] = parameter
         else:
@@ -72,26 +82,26 @@ class Encoder(ABC):
         self.parameters.append(param)
 
     def add_reference(self, reference):
-        #self.pydantic_coverage.referencing.append(
+        # self.pydantic_coverage.referencing.append(
         #    ReferenceSystemConnectionObject.model_validate_json(json.dumps(reference))
-        #)
-        #self.pydantic_coverage.referencing.append(reference)
-        #for ref in reference["coordinates"]:
+        # )
+        # self.pydantic_coverage.referencing.append(reference)
+        # for ref in reference["coordinates"]:
         #    if ref not in self.referencing:
-                #self.referencing.append(ref)
-        self.covjson['referencing'] = [reference]
+        # self.referencing.append(ref)
+        self.covjson["referencing"] = [reference]
 
     def convert_param_id_to_param(self, paramid):
         try:
             param = int(paramid)
         except BaseException:
             return paramid
-        #param_dict = get_param_from_db(int(param))
+        # param_dict = get_param_from_db(int(param))
         param_dict = self.params[str(param)]
         return param_dict["shortname"]
 
     def get_json(self):
-        #self.covjson = self.pydantic_coverage.model_dump_json(exclude_none=True, indent=4)
+        # self.covjson = self.pydantic_coverage.model_dump_json(exclude_none=True, indent=4)
         return orjson.dumps(self.covjson)
 
     @abstractmethod

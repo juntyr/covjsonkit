@@ -6,6 +6,8 @@ class CoverageCollection:
         self.type = self.coverage["type"]
 
         if self.type == "Coverage":
-            raise TypeError("CoverageCollection class takes CoverageCollection not Coverage")
+            raise TypeError(
+                "CoverageCollection class takes CoverageCollection not Coverage"
+            )
 
         self.coverages = self.coverage["coverages"]
